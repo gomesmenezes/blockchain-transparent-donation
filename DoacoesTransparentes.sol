@@ -31,7 +31,7 @@ contract DoacoesTransparentes {
     address public ong;
     uint public totalCampanhas;
 
-    mapping(uint => Campanha) public campanhas;
+    mapping(uint => Campanha) private campanhas;
     mapping(uint => Doacao[]) private doacoes;
     mapping(uint => Gasto[]) private gastos;
 
@@ -109,6 +109,10 @@ contract DoacoesTransparentes {
         require(campanhas[_idCampanha].aberta, "Campanha ja esta encerrada");
         campanhas[_idCampanha].aberta = false;
         emit CampanhaEncerrada(_idCampanha);
+    }
+
+    function consultarCampanha(uint _idCampanha) public view campanhaExiste(_idCampanha) returns (Campanha memory) {
+        return campanhas[_idCampanha];
     }
 
     function saldoCampanha(uint _idCampanha) public view campanhaExiste(_idCampanha) returns (uint) {
