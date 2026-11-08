@@ -1,52 +1,44 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title Doações Transparentes para ONGs
-/// @notice Mantém um histórico público das doações e dos gastos declarados por campanha.
-/// @dev Os valores são registrados em reais inteiros. Os pagamentos ocorrem fora do contrato.
+/// @notice Histórico público de doações e gastos declarados por campanha.
+/// @dev Valores em reais inteiros. Os pagamentos ocorrem fora do contrato.
 contract DoacoesTransparentes {
-
-    // ===================== DADOS ARMAZENADOS =====================
-
     struct Campanha {
         uint id;
         string nome;
-        uint meta;              // em reais
-        uint totalArrecadado;   // em reais
-        uint totalGasto;        // em reais
+        uint meta;
+        uint totalArrecadado;
+        uint totalGasto;
         bool aberta;
         uint dataCriacao;
     }
 
     struct Doacao {
         address doador;
-        uint valor;             // em reais
+        uint valor;
         uint data;
     }
 
     struct Gasto {
-        uint valor;             // em reais
+        uint valor;
         string descricao;
         address destinatario;
-        string referenciaComprovante; // Número da nota fiscal ou referência do recibo
+        string referenciaComprovante; // Exemplo: NF-12345
         uint data;
     }
 
-    address public ong;                 // administrador do contrato
+    address public ong;
     uint public totalCampanhas;
 
     mapping(uint => Campanha) public campanhas;
     mapping(uint => Doacao[]) private doacoes;
     mapping(uint => Gasto[]) private gastos;
 
-    // ===================== EVENTOS =====================
-
     event CampanhaCriada(uint indexed id, string nome, uint meta);
     event DoacaoRegistrada(uint indexed idCampanha, address indexed doador, uint valor);
     event GastoRegistrado(uint indexed idCampanha, uint valor, string descricao, address destinatario);
     event CampanhaEncerrada(uint indexed id);
-
-    // ===================== PERMISSÕES =====================
 
     modifier somenteONG() {
         require(msg.sender == ong, "Apenas a ONG pode executar esta funcao");
@@ -59,12 +51,10 @@ contract DoacoesTransparentes {
     }
 
     constructor() {
-        ong = msg.sender; // quem implanta o contrato é a ONG
+        // A carteira que implanta o contrato fica responsável pelas campanhas.
+        ong = msg.sender;
     }
 
-    // ===================== REGISTRO =====================
-
-    /// @notice A ONG cria uma nova campanha
     function criarCampanha(string memory _nome, uint _meta) public somenteONG {
         require(bytes(_nome).length > 0, "Nome obrigatorio");
         require(_meta > 0, "Meta deve ser maior que zero");
@@ -83,7 +73,6 @@ contract DoacoesTransparentes {
         emit CampanhaCriada(totalCampanhas, _nome, _meta);
     }
 
-    /// @notice Qualquer carteira pode registrar uma doação declarada para uma campanha aberta.
     function doar(uint _idCampanha, uint _valor) public campanhaExiste(_idCampanha) {
         Campanha storage c = campanhas[_idCampanha];
         require(c.aberta, "Campanha encerrada");
@@ -95,7 +84,6 @@ contract DoacoesTransparentes {
         emit DoacaoRegistrada(_idCampanha, msg.sender, _valor);
     }
 
-    /// @notice A ONG registra uma despesa declarada e atualiza o saldo contábil da campanha.
     function registrarGasto(
         uint _idCampanha,
         uint _valor,
@@ -116,14 +104,12 @@ contract DoacoesTransparentes {
         emit GastoRegistrado(_idCampanha, _valor, _descricao, _destinatario);
     }
 
-    /// @notice Bloqueia novos registros de doação. A ONG pode continuar registrando despesas.
+    /// @notice A ONG pode registrar despesas mesmo depois do encerramento.
     function encerrarCampanha(uint _idCampanha) public somenteONG campanhaExiste(_idCampanha) {
         require(campanhas[_idCampanha].aberta, "Campanha ja esta encerrada");
         campanhas[_idCampanha].aberta = false;
         emit CampanhaEncerrada(_idCampanha);
     }
-
-    // ===================== CONSULTA =====================
 
     function saldoCampanha(uint _idCampanha) public view campanhaExiste(_idCampanha) returns (uint) {
         Campanha storage c = campanhas[_idCampanha];
